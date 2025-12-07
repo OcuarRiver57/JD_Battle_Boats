@@ -17,7 +17,7 @@ import { useState, useEffect, createContext, useContext } from 'react';
 const GameContext = createContext(null);
 
 // global variables in lowercase with underscores to make them easily identifiable
-let PLAYER_ACTION = "placing_ship"; // possible values: "placing_ship" "moving_ship" "attacking"
+let PLAYER_ACTION = "attacking"; // possible values: "placing_ship" "moving_ship" "attacking"
 let PLAYER_TURN = 1; // 1 or 2
 
 let P1_SHIP_DATA = {}; //dictionary of ship placements for player 1, keyed by cell id (e.g. "a-0-0")
@@ -54,7 +54,7 @@ function App() {
 
         <div id = "base_bar" className = "flex flex-row justify-left bg-gray-300 p-4">
           <div id = "powerup_area" className = "bg-yellow-400 flex-5/12"> power ups</div>
-          <div id = "status_area" className = "bg-green-400 flex-5/12"> <AddTestingButtons />{/*remove this before production */} </div>
+          <div id = "status_area" className = "bg-green-400 flex-5/12"> </div>
         </div>
       </div>
       </GameContext.Provider>
@@ -170,7 +170,7 @@ function ShipForList({ship, currentShip, setCurrentShip}){
   };
   
   return(
-    <div 
+    <div
       id = {`shipList_${name}`} 
       key = {`shipList_${name}`} 
       className = "hover:cursor-pointer border border-black hover:border-orange-600 pb-1 mb-4"
@@ -186,18 +186,20 @@ function ShipForList({ship, currentShip, setCurrentShip}){
 function Cell({ gridID, row, col, value, cellStyle}) {
   const cellId = `${gridID}-${row}-${col}`;
 
+  const { setGridA, setGridB } = useContext(GameContext);
+
   return (
     <div 
       id={cellId} 
       key={cellId}
       className={cellStyle} 
       style={{ backgroundColor: SetBackgroundOfCell(value) }}
-      onClick={() => handleCellClick(cellId)}
+      onClick={(event) => handleCellClick(event, cellId, setGridA, setGridB)}
     >
     {/* cell contents */}
     {value}
     </div>
-  ); 
+  );
 }
 
 function CreateDisplayGrid({ gridId, cellStyle, rows = 10, cols = 10 }) {
@@ -231,13 +233,14 @@ function CreateDisplayGrid({ gridId, cellStyle, rows = 10, cols = 10 }) {
     for (let row = 0; row < rows; row++) {
       for (let col = 0; col < cols; col++) {
         let cellId = `${gridId}-${row}-${col}`;
+        const cellValue = (gridData && gridData[row] && gridData[row][col]) ? gridData[row][col] : "";
         cells.push(
           <Cell 
             key={cellId} 
             gridID={gridId} 
             row={row} 
             col={col}
-            value={gridData[cellId] || ""}
+            value={cellValue}
             cellStyle={cellStyle}
           />
         );
@@ -248,15 +251,11 @@ function CreateDisplayGrid({ gridId, cellStyle, rows = 10, cols = 10 }) {
           {cells}
         </div>
     );
-  }
+}
 
-function handleCellClick(cellId) {
-  const cell = document.getElementById(cellId);
-  // add logic to handle the cell click such as updating game state or sending a move to the server
-
-  if (PLAYER_ACTION == "moving_ship") MoveShip(cell);
-      
-  if (PLAYER_ACTION == "attacking") Attack(cell);  
+function handleCellClick(event, cellId, setGridA, setGridB) {
+  if (PLAYER_ACTION === "moving_ship") MoveShip(event, cellId, setGridA, setGridB);
+  else if (PLAYER_ACTION === "attacking") Attack(event, cellId, setGridA, setGridB);
 }
 
 function CreateBlankGridDict(gridId) {
@@ -273,7 +272,6 @@ function CreateBlankGridDict(gridId) {
 }
 
 function LoadMapData(setGridA, setGridB) {
-  // build two new grids (10x10) and populate them from the backend lists
   const rows = 10;
   const cols = 10;
   const newGridA = [];
@@ -294,11 +292,8 @@ function LoadMapData(setGridA, setGridB) {
     }
   }
 
-  if (typeof setGridA === 'function') setGridA(newGridA);
-  if (typeof setGridB === 'function') setGridB(newGridB);
-
-  // return the built grids in case caller wants them synchronously
-  return { gridA: newGridA, gridB: newGridB };
+  setGridA(newGridA);
+  setGridB(newGridB);
 }
 
 function IdentifyShipFromCell(cellId) {
@@ -319,22 +314,44 @@ function SaveShipToList(shipCells){
   shipList[shipName] = shipCells; // save the ship's coordinates to the list
 }
 
-function PlaceShip(cellId) {
+function PlaceShip() {
 }
 
-function MoveShip(cellId) {
-  console.log("move ship not implemented"); // handle moving ship logic
-
+function MoveShip(event, cellId, setGridA, setGridB) {
+  console.log("move ship not implemented", cellId); // handle moving ship logic
+  LoadMapData(setGridA, setGridB);
 }
 
-function Attack(cellId) {
-  console.log("attacking not implemented"); // handle attacking logic
+function Attack(event, cellId, setGridA, setGridB) {
+  let grid = cellId[0];
+  let yourGrid;
+  let oppGrid;
+  if (grid === "b"){
+    if (PLAYER_TURN === 1) {
+      yourGrid = P1_ATTACK_DATA;
+      oppGrid = P2_SHIP_DATA;
+    }
+    else{
+      yourGrid = P2_ATTACK_DATA;
+      oppGrid = P1_SHIP_DATA;
+    }
 
+    if (oppGrid[cellId] === "ship"){
+      oppGrid[cellId] = "hit";
+      yourGrid[cellId] = "hit";
+    }
+    else if (!oppGrid[cellId]){
+      oppGrid[cellId] = "miss";
+      yourGrid[cellId] = "miss";
+    }
+    console.log(`Attacking: ${cellId} | status: ${oppGrid[cellId]}`);
+    LoadMapData(setGridA, setGridB);
+  }
+  else console.log("cannot attack own fleet");
 }
 
 function EndTurn() {
-  // save the current game state before ending the turn
-  SaveAllMapData();
+  //SaveAllMapData();
 
   // switch player turn
   PLAYER_TURN = (PLAYER_TURN === 1) ? 2 : 1;
@@ -363,30 +380,24 @@ function ChooseGrid(){
 }
 
 function TESTchangeRandomCells(setGridA, setGridB) {
-  let randomGrid = Math.random() < 0.5 ? "a" : "b";
   let random100 = Math.floor(Math.random() * 30);
-  let random3 = Math.floor(Math.random() * 3);
-  
-  let randomValue = "";
-  if (random3 == 0) randomValue = "ship";
-  else if (random3 == 1) randomValue = "hit";
-  else randomValue = "miss";
   
   for (let i = 0; i < random100; i++) {
     let randomRow = Math.floor(Math.random() * 10);
     let randomCol = Math.floor(Math.random() * 10);
-    let cellId = `${randomGrid}-${randomRow}-${randomCol}`;
-    if (randomGrid == "a") {
-      P1_SHIP_DATA[cellId] = randomValue;
-      P2_ATTACK_DATA[cellId] = randomValue;
-    }
-    else if (randomGrid == "b") {
-      P1_ATTACK_DATA[cellId] = randomValue;
-      P2_SHIP_DATA[cellId] = randomValue;
-    }
-    console.log(`changed cell ${cellId} to value ${randomValue}`);
+
+    let grid = "a";
+    let cellId = `${grid}-${randomRow}-${randomCol}`;
+    P1_SHIP_DATA[cellId] = "ship";
+    P2_ATTACK_DATA[cellId] = "ship";
+
+    grid = "b";
+    cellId = `${grid}-${randomRow}-${randomCol}`;
+    P2_SHIP_DATA[cellId] = "ship";
+
+    console.log(`changed cell ${cellId}`);
   }
-  console.log(`changed ${random100} cells in grid ${randomGrid} to value ${randomValue}`);
+  console.log(`changed ${random100} cells`);
   LoadMapData(setGridA, setGridB);
 }
 
