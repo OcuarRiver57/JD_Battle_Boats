@@ -54,7 +54,9 @@ function App() {
 
         <div id = "base_bar" className = "flex flex-row justify-left bg-gray-300 p-4">
           <div id = "powerup_area" className = "bg-yellow-400 flex-5/12"> power ups</div>
-          <div id = "status_area" className = "bg-green-400 flex-5/12"> </div>
+          <div id = "status_area" className = "bg-green-400 flex-5/12">
+            <AddTestingButtons/>
+          </div>
         </div>
       </div>
       </GameContext.Provider>
