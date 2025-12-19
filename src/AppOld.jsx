@@ -1,9 +1,32 @@
+// to do list
+/*
+- implement the logic for placing ships on the grid
+- implement the logic for moving ships on the grid
+- implement the logic for ending a turn and switching players
+*/
 
+// where i left off
+/*
+
+*/
 
 import { useState, useEffect, createContext, useContext } from 'react';
 
 // create a context to avoid prop drilling for grids and styles
 const GameContext = createContext(null);
+
+// global variables in lowercase with underscores to make them easily identifiable
+let PLAYER_ACTION = "attacking"; // possible values: "placing_ship" "moving_ship" "attacking"
+let PLAYER_TURN = 1; // 1 or 2
+
+let P1_SHIP_DATA = {}; //dictionary of ship placements for player 1, keyed by cell id (e.g. "a-0-0")
+let P1_ATTACK_DATA = {}; // dictionary of attack history for player 1, keyed by cell id (e.g. "b-0-0")
+let P1_SHIP_LIST = {}; // dictionary of ships for player 1
+// example {ship1 : [cord1, cord2, cord3]}, {ship2 : [cord1, cord2, cord3]}, etc.
+
+let P2_SHIP_DATA = {}; 
+let P2_ATTACK_DATA = {};
+let P2_SHIP_LIST = {};
 
 function App() {
   const [gridA, setGridA] = useState(CreateBlankGridDict("a"));
@@ -128,6 +151,12 @@ function GamePlay() {
     )
 }
 
+function DisplayShipList({fleet, currentShip, setCurrentShip, direction, setDirection}){
+  return Object.keys(fleet).map(key => (
+    <ShipForList key={`shipList_${fleet[key].name}`} ship={fleet[key]} currentShip={currentShip} setCurrentShip={setCurrentShip} />
+  ));
+}
+
 function ShipForList({ship, currentShip, setCurrentShip}){
   const { gridA, setGridA } = useContext(GameContext);
   
@@ -230,6 +259,19 @@ function handleCellClick(event, cellId, setGridA, setGridB) {
   else if (PLAYER_ACTION === "attacking") Attack(event, cellId, setGridA, setGridB);
 }
 
+function CreateBlankGridDict(gridId) {
+  let rows = 10; 
+  let cols = 10;
+  let gridDict = [];
+
+  for (let x = 0; x < rows; x++) {
+    for (let y = 0; y < cols; y++) {
+      gridDict[`${gridId}-${x}-${y}`] = "";
+    }
+  }
+  return gridDict;
+}
+
 function LoadMapData(setGridA, setGridB) {
   const rows = 10;
   const cols = 10;
@@ -255,11 +297,117 @@ function LoadMapData(setGridA, setGridB) {
   setGridB(newGridB);
 }
 
+function IdentifyShipFromCell(cellId) {
+  const shipList = (PLAYER_TURN === 1) ? P1_SHIP_DATA : P2_SHIP_DATA;
+  
+  for (const shipName in shipList) {
+    if (shipList[shipName].includes(cellId)) {
+      return shipList[shipName];// return the list of coordinates for this ship
+    }
+  }
+  
+  return null; // no ship found at this cell
+}
+
+function SaveShipToList(shipCells){
+  const shipList = (PLAYER_TURN === 1) ? P1_SHIP_DATA : P2_SHIP_DATA;
+  const shipName = `ship${shipList.length + 1}`; // simple way to generate a new ship name
+  shipList[shipName] = shipCells; // save the ship's coordinates to the list
+}
+
+function PlaceShip() {
+}
+
+function MoveShip(event, cellId, setGridA, setGridB) {
+  console.log("move ship not implemented", cellId); // handle moving ship logic
+  LoadMapData(setGridA, setGridB);
+}
+
+function Attack(event, cellId, setGridA, setGridB) {
+  let grid = cellId[0];
+  let yourGrid;
+  let oppGrid;
+  if (grid === "b"){
+    if (PLAYER_TURN === 1) {
+      yourGrid = P1_ATTACK_DATA;
+      oppGrid = P2_SHIP_DATA;
+    }
+    else{
+      yourGrid = P2_ATTACK_DATA;
+      oppGrid = P1_SHIP_DATA;
+    }
+
+    if (oppGrid[cellId] === "ship"){
+      oppGrid[cellId] = "hit";
+      yourGrid[cellId] = "hit";
+    }
+    else if (!oppGrid[cellId]){
+      oppGrid[cellId] = "miss";
+      yourGrid[cellId] = "miss";
+    }
+    console.log(`Attacking: ${cellId} | status: ${oppGrid[cellId]}`);
+    LoadMapData(setGridA, setGridB);
+  }
+  else console.log("cannot attack own fleet");
+}
+
+function EndTurn() {
+  //SaveAllMapData();
+
+  // switch player turn
+  PLAYER_TURN = (PLAYER_TURN === 1) ? 2 : 1;
+
+  // load the game state for the new player
+  LoadMapData();
+}
+
 function SetBackgroundOfCell(cellValue){
   if (cellValue == "ship") return "green";
   else if (cellValue == "hit") return "red";
   else if (cellValue == "miss") return "white";
   else return "transparent";
+}
+
+function ChooseGrid(){
+  if (PLAYER_ACTION == "placing_ship") {
+    return (PLAYER_TURN === 1) ? P1_SHIP_DATA : P2_SHIP_DATA;
+  }
+  else if (PLAYER_ACTION == "attacking") {
+    return (PLAYER_TURN === 1) ? P1_ATTACK_DATA : P2_ATTACK_DATA;
+  }
+  else if (PLAYER_ACTION == "moving_ship") {
+    return (PLAYER_TURN === 1) ? P1_SHIP_DATA : P2_SHIP_DATA;
+  }
+}
+
+function TESTchangeRandomCells(setGridA, setGridB) {
+  let random100 = Math.floor(Math.random() * 30);
+  
+  for (let i = 0; i < random100; i++) {
+    let randomRow = Math.floor(Math.random() * 10);
+    let randomCol = Math.floor(Math.random() * 10);
+
+    let grid = "a";
+    let cellId = `${grid}-${randomRow}-${randomCol}`;
+    P1_SHIP_DATA[cellId] = "ship";
+    P2_ATTACK_DATA[cellId] = "ship";
+
+    grid = "b";
+    cellId = `${grid}-${randomRow}-${randomCol}`;
+    P2_SHIP_DATA[cellId] = "ship";
+
+    console.log(`changed cell ${cellId}`);
+  }
+  console.log(`changed ${random100} cells`);
+  LoadMapData(setGridA, setGridB);
+}
+
+function TESTResetMaps(setGridA, setGridB) {
+  P1_ATTACK_DATA = {};
+  P1_SHIP_DATA = {};
+  P2_ATTACK_DATA = {};
+  P2_SHIP_DATA = {};
+  LoadMapData(setGridA, setGridB);
 }
 
 function AddTestingButtons() {
