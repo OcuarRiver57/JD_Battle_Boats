@@ -1,19 +1,24 @@
 // to do list
 /*
+- action method
+    - add logic for each action
+    - add logic for non current player requesting data
 - test the logic for validating ship placement on the grid
 - implement the logic for moving ships on the grid
+- figure out how to allow both players to place ships at the same time
 */
 
 // where i left off
 /*
-
+    action method
+        - add logic for each action
 */
 
-class BattleShipGame {
+class Battle {
     constructor() {
         // Initialize game state
         this.playerTurn = 1; // 1 or 2
-        this.playerAction = "attacking"; // possible values: "placing_ship", "moving_ship", "attacking"
+        this.playerAction = "attack"; // possible values: "deploy", "scout", "attack"
 
         this.p1ShipData = {}; // dictionary of ship placements for player 1
         /* example: (can have ship, hit, or miss as values)
@@ -44,6 +49,11 @@ class BattleShipGame {
 
         this.gridRows = 10;
         this.gridCols = 10;
+
+        this.player1Id = generatePlayerId();
+        this.player2Id = generatePlayerId();
+
+        this.gameId - generateGameId();
     }
 
 //#region static utils
@@ -51,7 +61,7 @@ class BattleShipGame {
         if (typeof cord === "array") {
             return `${cord[0]}-${cord[1]}`;
         }
-        else console.error(`arrayCordConverter input is type "${typeof cord}" when it should be "array"`);
+        else this.error(`arrayCordConverter input is type "${typeof cord}" when it should be "array"`);
         
     }
 
@@ -62,53 +72,67 @@ class BattleShipGame {
             let y = parseInt(cords[2], 10);
             return [x, y];
         }
-        else console.error(`stringCordConverter input is type "${typeof cord}" when it should be "string"`);
+        else this.error(`stringCordConverter input is type "${typeof cord}" when it should be "string"`);
         
     }
 
     static cordConverter(cord){
         if (typeof cord === "string") return this.stringToArrayCordConverter(cord);
         else if (typeof cord === "array") return this.arrayToStringCordConverter(cord);
-        else console.error(`cordConverter input is type "${typeof cord}" when it should be "array" or "string"`);
+        else this.error(`cordConverter input is type "${typeof cord}" when it should be "array" or "string"`);
     }
 
+    static generatePlayerId(length = 16) {
+    // generates random id for playsers that will get saved to client
+        const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+        let id = "";
+        for (let i = 0; i < length; i++) {
+            id += chars[Math.floor(Math.random() * chars.length)];
+        }
+        return id;
+    }
+
+    static generateGameId(length = 5) {
+    // generates random id for game that can be shard with other to play same game
+        const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+        let id = "";
+        for (let i = 0; i < length; i++) {
+            id += chars[Math.floor(Math.random() * chars.length)];
+        }
+        return id;
+    }
+
+    static getOtherPlayer(player = this.playerTurn){
+        return (player === 1) ? 2 : 1;
+    }
 //#endregion
 
 //#region Data Dict Selectors
-    selectShipList(selectCurrent = true) {
+    selectShipList(player = this.playerTurn) {
     /*
     this method returns the current player's shipList dictionary
     this is where the cords save in shipData are grouped into ships and saved
-    it takes a bool as input. if true, it returns the current player's data.
-    if false, it returns the other player's data.
-    it defaults to true.
     */
-        if (selectCurrent) return (this.playerTurn === 1) ? this.p1ShipList : this.p2ShipList;
-        else return (this.playerTurn === 1) ? this.p2ShipList : this.p1ShipList;
+        if (player === 1) return this.p1ShipList;
+        else return this.p2ShipList;
     }
 
-    selectShipData(selectCurrent = true) {
+    selectShipData(player = this.playerTurn) {
     /*
     this method returns the current player's shipData dictionary
     this is where the current player's ship placement and status is stored
-    it takes a bool as input. if true, it returns the current player's data.
-    if false, it returns the other player's data.
-    it defaults to true.
     */
-        if (selectCurrent) return (this.playerTurn === 1) ? this.p1ShipData : this.p2ShipData;
-        else return (this.playerTurn === 1) ? this.p2ShipData : this.p1ShipData;
+        if (player === 1) return this.p1ShipData;
+        else return this.p2ShipData;
     }
 
-    selectAttackData(selectCurrent = true) {
+    selectAttackData(player = this.playerTurn) {
     /*
     this method returns the current player's attackData dictionary
     this is where the current player's attack history is stored
-    it takes a bool as input. if true, it returns the current player's data.
-    if false, it returns the other player's data.
-    it defaults to true.
     */
-        if (selectCurrent) return (this.playerTurn === 1) ? this.p1AttackData : this.p2AttackData;
-        else return (this.playerTurn === 1) ? this.p2AttackData : this.p1AttackData;
+        if (player === 1) return this.p1AttackData;
+        else return this.p2AttackData;
     }
 
 //#endregion
@@ -186,7 +210,7 @@ class BattleShipGame {
                     invalidCells.push(currentCord);
                 }
             }
-            else console.error(`validateShipPlacement shipDirection is not valid`);
+            else this.error(`validateShipPlacement shipDirection is not valid`);
         }
         return invalidCells;
     }
@@ -200,7 +224,7 @@ class BattleShipGame {
     */
         // select the current player's attackData and the other player's shipData
         let currentAttackGrid = this.selectAttackData();
-        let otherShipGrid = this.selectShipData(false);// false means it selects the non curent player's data
+        let otherShipGrid = this.selectShipData(this.getOtherPlayer());// selects the non curent player's data
         
         // make sure cord is in string format
         cord = cordInputTypeErrorHandler(cord, "attack");
@@ -247,7 +271,7 @@ class BattleShipGame {
             }
         }
 
-        console.error(`identifyShipFromCell did not find a ship at cord: ${cord}, in list:${shipList} on turn ${this.playerTurn}`);
+        this.error(`identifyShipFromCell did not find a ship at cord: ${cord}, in list:${shipList} on turn ${this.playerTurn}`);
         return null; // no ship found at this cell
     }
 
@@ -261,7 +285,7 @@ class BattleShipGame {
         // does not stop duplicates but logs an error
         for (const cord in shipCordsArray) {
             if (this.identifyShipFromCell(cord)) {
-                console.error(`SaveShipToList: cord ${cord} already has a ship`);
+                this.error(`SaveShipToList: cord ${cord} already has a ship`);
             }
         }
 
@@ -283,6 +307,31 @@ class BattleShipGame {
 
         // switch player turn
         this.playerTurn = (this.playerTurn === 1) ? 2 : 1;
+    }
+
+    action(player, cords, playerId){
+    // takes a player num, cords, and the current action and runs acts accordingly
+        // checks if the game is starting and it should send the playerid's to the players.
+        let gameStart = false;
+        if (this.p1ShipData.length === 0 || this.p2ShipData.length === 0) gameStart = true;
+        let returnData;
+
+        // checks if the player id is correct or the game is starting
+        if (playerId === this.player1Id || playerId === this.player2Id || gameStart) {
+            //checks if the player who sent the request is the current player
+            if (player === this.playerTurn) {
+                if (this.playerAction == "scout") {}
+                else if (this.playerAction == "deploy") {}
+                else if (this.playerAction == "attack") {}
+                if (gameStart) returnData.playerId = (player === 1 ? this.player1Id : this.player2Id);
+
+                returnData.fleet = {...this.selectShipData()};
+                returnData.attacks = {...this.selectAttackData()};
+                return returnData;
+            }
+            else console.log(`Its is not ${player}'s turn`);
+        }
+        else (this.error(`ID error: Player${player}| Given Id:${playerId}`));
     }
 //#endregion
 
@@ -330,9 +379,39 @@ class BattleShipGame {
     */
         if (typeof cord === "array") { // if the input is an array, convert it to a string
             cord = this.arrayCordConverter(cord); 
-            console.error(`${caller} input type was array, converting to string`);
+            this.error(`${caller} input type was array, converting to string`);
         }
         return cord;
+    }
+
+    error(errorDescription = "no error description provided") {
+        console.error(`
+            Error in game ${this.gameId}:
+            player1Id: ${this.player1Id}
+            player2Id: ${this.player2Id}
+            playerTurn: ${this.playerTurn}
+            playerAction: ${this.playerAction}
+            gridRows: ${this.gridRows}
+            gridCols: ${this.gridCols}
+
+            Error Description==============================
+            ${errorDescription}
+            End of Error Description=======================
+
+            Player 1 Data==================================
+            player1Id: ${this.player1Id}
+            p1ShipData: ${JSON.stringify(this.p1ShipData)}
+            p1AttackData: ${JSON.stringify(this.p1AttackData)}
+            p1ShipList: ${JSON.stringify(this.p1ShipList)}
+            End of Player 1 Data===========================
+
+            Player 2 Data==================================
+            player2Id: ${this.player2Id}
+            p2ShipData: ${JSON.stringify(this.p2ShipData)}
+            p2AttackData: ${JSON.stringify(this.p2AttackData)}
+            p2ShipList: ${JSON.stringify(this.p2ShipList)}
+            End of Player 2 Data===========================
+            `);
     }
 //#endregion
 }
