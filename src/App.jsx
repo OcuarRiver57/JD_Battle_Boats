@@ -1,4 +1,13 @@
+// to do list
+/*
+create a standalone ui
+link ui buttons to battleShip.js functions
+*/
 
+// where i left off
+/*
+
+*/
 
 import { useState, useEffect, createContext, useContext } from 'react';
 

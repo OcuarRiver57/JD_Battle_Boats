@@ -1,13 +1,12 @@
 // to do list
 /*
-- implement the logic for validating ship placement on the grid
+- test the logic for validating ship placement on the grid
 - implement the logic for moving ships on the grid
 */
 
 // where i left off
 /*
-validateShipPlacement
-    code logic for checking cells in direction are valid
+
 */
 
 class BattleShipGame {
@@ -48,7 +47,7 @@ class BattleShipGame {
     }
 
 //#region static utils
-    static arrayCordConverter(cord){
+    static arrayToStringCordConverter(cord){
         if (typeof cord === "array") {
             return `${cord[0]}-${cord[1]}`;
         }
@@ -56,7 +55,7 @@ class BattleShipGame {
         
     }
 
-    static stringCordConverter(cord){
+    static stringToArrayCordConverter(cord){
         if (typeof cord === "string") {
             let cords = cord.split("-");
             let x = parseInt(cords[1], 10);
@@ -68,8 +67,8 @@ class BattleShipGame {
     }
 
     static cordConverter(cord){
-        if (typeof cord === "string") return this.stringCordConverter(cord);
-        else if (typeof cord === "array") return this.arrayCordConverter(cord);
+        if (typeof cord === "string") return this.stringToArrayCordConverter(cord);
+        else if (typeof cord === "array") return this.arrayToStringCordConverter(cord);
         else console.error(`cordConverter input is type "${typeof cord}" when it should be "array" or "string"`);
     }
 
@@ -142,17 +141,54 @@ class BattleShipGame {
     /*
     this method takes a start cell id, ship length, and direction. 
     it checks the start cord and then the next cells in the direction of the ship
-    returns it returns null if valid or an array of cords if invalid
+    returns it returns empty array if valid or an array of cords if invalid
     */
-        // make sure cord is in string format
-        cordStartCord = cordInputTypeErrorHandler(shipStartCord, "validateShipPlacement");
+        // make sure input is in string format for testing
+        shipStartCord = cordInputTypeErrorHandler(shipStartCord, "validateShipPlacement");
+
+        // convert cord to array format for easier use
+        shipStartCord = stringToArrayCordConverter(shipStartCord);
+        let invalidCells = [];
+        
         for (let i = 0; i < shipLength; i++) {
-            if (shipDirection == "up") {}
-            else if (shipDirection == "down") {}
-            else if (shipDirection == "left") {}
-            else if (shipDirection == "right") {}
+            let currentGrid = this.selectShipData();
+            let currentCord = [...shipStartCord];
+
+            if (shipDirection == "up") {
+            // checks if cells above starting cord are valid
+                //makes currently checked cord the one above the previous one
+                currentCord[1] = shipStartCord[1] - i; // 0 is x, 1 is y. - is up, + is down. [1] - 1 is up one
+
+                // checks if cell is out of bounds or already used
+                if (currentCord < 0 || currentGrid[currentCord] == "ship" || currentGrid[currentCord] == "hit") {
+                    console.log(`cell ${currentCord} is invalid for placing a ship`);
+                    invalidCells.push(currentCord);
+                }
+            }
+            else if (shipDirection == "down") {
+                currentCord[1] = shipStartCord[1] + i;
+                if (currentCord > this.gridCols || currentGrid[currentCord] == "ship" || currentGrid[currentCord] == "hit") {
+                    console.log(`cell ${currentCord} is invalid for placing a ship`);
+                    invalidCells.push(currentCord);
+                }
+            }
+            else if (shipDirection == "left") {
+                currentCord[0] = shipStartCord[0] - i;
+                if (currentCord < 0 || currentGrid[currentCord] == "ship" || currentGrid[currentCord] == "hit") {
+                    console.log(`cell ${currentCord} is invalid for placing a ship`);
+                    invalidCells.push(currentCord);
+                }
+            }
+            else if (shipDirection == "right") {
+                currentCord[0] = shipStartCord[0] + i;
+                if (currentCord > this.gridCols || currentGrid[currentCord] == "ship" || currentGrid[currentCord] == "hit") {
+                    console.log(`cell ${currentCord} is invalid for placing a ship`);
+                    invalidCells.push(currentCord);
+                }
+            }
             else console.error(`validateShipPlacement shipDirection is not valid`);
         }
+        return invalidCells;
     }
 //#endregion
 
