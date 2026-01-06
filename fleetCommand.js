@@ -29,6 +29,14 @@
 /*
     
 */
+import "battle.js";
+
+let instances = {};
+
+function createInstance(){
+  instances[instances.length] = 
+}
+
 
 require("dotenv").config();
 const port = process.env.PORT || 3000;
