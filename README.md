@@ -46,7 +46,7 @@ The User Deploys 4 Battle Boats on to a 10x10 grid and then goes back and forth 
 
 ### AI
 
-- AI all place boats randomly without overlap or going outside bounds.
+- All AI place boats randomly without overlap or going outside bounds.
 
 - Difficulty levels:
   
@@ -61,12 +61,13 @@ The User Deploys 4 Battle Boats on to a 10x10 grid and then goes back and forth 
   - medium:
     
     - attacks random locations on grid with no repeat attacks 
+    - it gets a hit then it targets area around hit until another hit or all adjacent squares have been hit
   
   - hard: 
     
     - will attack from one of multiple search patterns instead of random locations
     
-    - if it gets a hit then it targets area around hit until another hit or all ajacent squares have been hit
+    - if it gets a hit then it targets area around hit until another hit or all adjacent squares have been hit
   
   - very hard:
     
@@ -179,11 +180,12 @@ The User Deploys 4 Battle Boats on to a 10x10 grid and then goes back and forth 
 
 - instant death 
   
-  - all ships sink in one shot 
+  - all ships sink in one shot but are normal size
 
 - engines on
   
   - players can move one ship instead of attacking on their turn
+  - move cool down of two moves
 
 - duel
   
@@ -194,3 +196,7 @@ The User Deploys 4 Battle Boats on to a 10x10 grid and then goes back and forth 
   - each player is aided by an ai and both the player and the ai get an attack turn 
   
   - maybe a 4 player option instead of ai
+
+- budget cuts
+  
+  - all ships are 2 long
