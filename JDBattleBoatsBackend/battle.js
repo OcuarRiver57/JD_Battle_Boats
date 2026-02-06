@@ -1,46 +1,43 @@
 // to do list
 /*
-- action method
-    - add logic for each action
-    - add logic for non current player requesting data
-- test the logic for validating ship placement on the grid
 - implement the logic for moving ships on the grid
-- figure out how to allow both players to place ships at the same time
+- allow both players to place ships at the same time
+- limit how many ships can be placed
+- dont disable gamestart until ship limit is reached for both plyers
 */
 
 // where i left off
 /*
-    action method
-        - add logic for each action
+
 */
 
-class Battle {
-    constructor() {
+export default class Battle {
+    constructor(gameId) {
         // Initialize game state
         this.playerTurn = 1; // 1 or 2
-        this.playerAction = "attack"; // possible values: "deploy", "scout", "attack"
+        this.playerAction = "scout"; // possible values: "deploy", "scout", "attack"
 
         this.p1ShipData = {}; // dictionary of ship placements for player 1
         /* example: (can have ship, hit, or miss as values)
         {
-        "0-0": "ship",
-        "0-1": "hit",
-        "1-2": "miss"
+        "0:0": "ship",
+        "0:1": "hit",
+        "1:2": "miss"
         }
         */
         this.p1AttackData = {}; // dictionary of attack history for player 1
         /* example: (can have hit or miss as values)
         {
-        "0-0": "hit",
-        "0-1": "hit",
-        "1-2": "miss"
+        "0:0": "hit",
+        "0:1": "hit",
+        "1:2": "miss"
         }
         */
         this.p1ShipList = {}; // dictionary of ships for player 1. 
         /* example: 
         { 
-        ship1 : ["0-0", "0-1", "0-2"],
-        ship2 : ["1-0", "1-1", "1-2"]
+        ship1 : ["0:0", "0:1", "0:2"],
+        ship2 : ["1:0", "1:1", "1:2"]
         }
         */
         this.p2ShipData = {}; 
@@ -50,48 +47,13 @@ class Battle {
         this.gridRows = 10;
         this.gridCols = 10;
 
-        this.player1Id = generatePlayerId();
-        this.player2Id = generatePlayerId();
+        this.player1Id = this.generatePlayerId();
+        this.player2Id = this.generatePlayerId();
 
-        this.gameId - generateGameId();
+        this.gameId = gameId;
     }
 
 //#region static utils
-    static arrayToStringCordConverter(cord){
-        if (typeof cord === "array") {
-            return `${cord[0]}-${cord[1]}`;
-        }
-        else this.error(`arrayCordConverter input is type "${typeof cord}" when it should be "array"`);
-        
-    }
-
-    static stringToArrayCordConverter(cord){
-        if (typeof cord === "string") {
-            let cords = cord.split("-");
-            let x = parseInt(cords[1], 10);
-            let y = parseInt(cords[2], 10);
-            return [x, y];
-        }
-        else this.error(`stringCordConverter input is type "${typeof cord}" when it should be "string"`);
-        
-    }
-
-    static cordConverter(cord){
-        if (typeof cord === "string") return this.stringToArrayCordConverter(cord);
-        else if (typeof cord === "array") return this.arrayToStringCordConverter(cord);
-        else this.error(`cordConverter input is type "${typeof cord}" when it should be "array" or "string"`);
-    }
-
-    static generatePlayerId(length = 16) {
-    // generates random id for playsers that will get saved to client
-        const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-        let id = "";
-        for (let i = 0; i < length; i++) {
-            id += chars[Math.floor(Math.random() * chars.length)];
-        }
-        return id;
-    }
-
     static generateGameId(length = 5) {
     // generates random id for game that can be shard with other to play same game
         const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
@@ -102,7 +64,42 @@ class Battle {
         return id;
     }
 
-    static getOtherPlayer(player = this.playerTurn){
+    arrayToStringCordConverter(cord){
+        if (Array.isArray(cord)) {
+            return `${cord[0]}:${cord[1]}`;
+        }
+        else this.error(`arrayToStringCordConverter input is type "${typeof cord}" when it should be "array"`);
+        
+    }
+
+    stringToArrayCordConverter(cord){
+        if (typeof cord === "string") {
+            let cords = cord.split(":");
+            let x = parseInt(cords[0], 10);
+            let y = parseInt(cords[1], 10);
+            return [x, y];
+        }
+        else this.error(`stringCordConverter input is type "${typeof cord}" when it should be "string"`);
+        
+    }
+
+    cordConverter(cord){
+        if (typeof cord === "string") return this.stringToArrayCordConverter(cord);
+        else if (Array.isArray(cord)) return this.arrayToStringCordConverter(cord);
+        else this.error(`cordConverter input is type "${typeof cord}" when it should be "array" or "string"`);
+    }
+
+    generatePlayerId(length = 16) {
+    // generates random id for playsers that will get saved to client
+        const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+        let id = "";
+        for (let i = 0; i < length; i++) {
+            id += chars[Math.floor(Math.random() * chars.length)];
+        }
+        return id;
+    }
+
+    getOtherPlayer(player = this.playerTurn){
         return (player === 1) ? 2 : 1;
     }
 //#endregion
@@ -137,41 +134,105 @@ class Battle {
 
 //#endregion
 
-//#region place and move ship logic
-    deployShip(shipCordsArray) {
+//#region deploy and move ship logic
+    shipCordsFromStartDirectionLength(shipStartCord, shipDirection, shipLength){
     /*
-    this funciton handles the final step of adding a ship to the lists
-    this funciton does not validate the ship placement
+    this method takes a start cell id, ship length, and direction.
+    returns it returns an array of cords for the ship's placement or validation
     */
-        // picks the current player's shipList
-        const shipList = this.selectShipList();
-        // save the ship to the list with its cords
+        // make sure input is in string format for testing
+        shipStartCord = this.testCordInputTypeErrorHandler(shipStartCord, "validateShipPlacement");
+
+        // convert cord to array format for easier use
+        shipStartCord = this.stringToArrayCordConverter(shipStartCord);
+
+        let cells = [];
+        
+        for (let i = 0; i < shipLength; i++) {
+            let currentCord = [...shipStartCord];
+
+            if (shipDirection == "up") {
+                currentCord[1] = shipStartCord[1] - i; // 0 is x, 1 is y. - is up, + is down. [1] - 1 is up one
+                cells.push(currentCord);
+            }
+            else if (shipDirection == "down") {
+                currentCord[1] = shipStartCord[1] + i;
+                cells.push(currentCord);
+            }
+            else if (shipDirection == "left") {
+                currentCord[0] = shipStartCord[0] - i;
+                cells.push(currentCord);
+            }
+            else if (shipDirection == "right") {
+                currentCord[0] = shipStartCord[0] + i;
+                cells.push(currentCord);
+            }
+            else this.error(`shipCordsFromStartDirectionLength shipDirection is not valid`);
+        }
+        return cells;
+    }
+
+    deployShip(shipCordsArray) {
+    // this method places ship on the grid for the current player and returns cells of placed ship
+        // check for valid input (expects array of [x,y])
+        let invalidCells = this.validateShipPlacement(shipCordsArray);
+        if (invalidCells.length > 0) {
+            //this.error(`deployShip: ship placement invalid at cells: ${invalidCells}`);
+            return [];
+        }
+
+        // save the ship to the list of ships
         this.saveShipToList(shipCordsArray);
 
         // picks the current player's shipData
         const shipData = this.selectShipData();
         // save each cord to the shipData dictionary with the value "ship"
-        for (const cord in shipCordsArray) {
-            shipData[cord] = "ship";
+        for (const cord of shipCordsArray) {
+            const key = Array.isArray(cord) ? `${cord[0]}:${cord[1]}` : cord;
+            shipData[key] = "ship";
         }
-
+        return shipCordsArray;
     }
 
     MoveShip(cord) {
         console.log("move ship not implemented", cord); // handle moving ship logic
     }
 
-    validateShipPlacement(shipStartCord, shipLength, shipDirection) {
+    validateShipPlacement(shipCordsArray) {
+    /*
+    this method takes an array of cords. 
+    it checks the start cord and then the next cells in the direction of the ship
+    returns it returns empty array if valid or an array of invalid cords if invalid
+    */
+        let invalidCords = [];
+        const currentGrid = this.selectShipData();
+
+        for (const cord of shipCordsArray) {
+            let [x, y] = cord;
+            if (
+                x < 0 || x >= this.gridRows || /*checks x for out of bounds */
+                y < 0 || y >= this.gridCols || /*checks y for out of bounds */
+                currentGrid[cord] == "ship" || /*checks if cells is occupied */
+                currentGrid[cord] == "hit"
+            ) {
+                //console.log(`cell ${cord} is invalid for placing a ship`);
+                invalidCords.push([x, y]);
+            }
+        }
+        return invalidCords;
+    }
+
+    validateShipPlacementOld(shipStartCord, shipDirection, shipLength) {
     /*
     this method takes a start cell id, ship length, and direction. 
     it checks the start cord and then the next cells in the direction of the ship
     returns it returns empty array if valid or an array of cords if invalid
     */
         // make sure input is in string format for testing
-        shipStartCord = cordInputTypeErrorHandler(shipStartCord, "validateShipPlacement");
+        shipStartCord = this.testCordInputTypeErrorHandler(shipStartCord, "validateShipPlacement");
 
         // convert cord to array format for easier use
-        shipStartCord = stringToArrayCordConverter(shipStartCord);
+        shipStartCord = this.stringToArrayCordConverter(shipStartCord);
         let invalidCells = [];
         
         for (let i = 0; i < shipLength; i++) {
@@ -182,30 +243,29 @@ class Battle {
             // checks if cells above starting cord are valid
                 //makes currently checked cord the one above the previous one
                 currentCord[1] = shipStartCord[1] - i; // 0 is x, 1 is y. - is up, + is down. [1] - 1 is up one
-
                 // checks if cell is out of bounds or already used
-                if (currentCord < 0 || currentGrid[currentCord] == "ship" || currentGrid[currentCord] == "hit") {
+                if (currentCord[1] < 0 || currentGrid[currentCord] == "ship" || currentGrid[currentCord] == "hit") {
                     console.log(`cell ${currentCord} is invalid for placing a ship`);
                     invalidCells.push(currentCord);
                 }
             }
             else if (shipDirection == "down") {
                 currentCord[1] = shipStartCord[1] + i;
-                if (currentCord > this.gridCols || currentGrid[currentCord] == "ship" || currentGrid[currentCord] == "hit") {
+                if (currentCord[1] > this.gridCols || currentGrid[currentCord] == "ship" || currentGrid[currentCord] == "hit") {
                     console.log(`cell ${currentCord} is invalid for placing a ship`);
                     invalidCells.push(currentCord);
                 }
             }
             else if (shipDirection == "left") {
                 currentCord[0] = shipStartCord[0] - i;
-                if (currentCord < 0 || currentGrid[currentCord] == "ship" || currentGrid[currentCord] == "hit") {
+                if (currentCord[0] < 0 || currentGrid[currentCord] == "ship" || currentGrid[currentCord] == "hit") {
                     console.log(`cell ${currentCord} is invalid for placing a ship`);
                     invalidCells.push(currentCord);
                 }
             }
             else if (shipDirection == "right") {
                 currentCord[0] = shipStartCord[0] + i;
-                if (currentCord > this.gridCols || currentGrid[currentCord] == "ship" || currentGrid[currentCord] == "hit") {
+                if (currentCord[0] > this.gridCols || currentGrid[currentCord] == "ship" || currentGrid[currentCord] == "hit") {
                     console.log(`cell ${currentCord} is invalid for placing a ship`);
                     invalidCells.push(currentCord);
                 }
@@ -225,23 +285,28 @@ class Battle {
         // select the current player's attackData and the other player's shipData
         let currentAttackGrid = this.selectAttackData();
         let otherShipGrid = this.selectShipData(this.getOtherPlayer());// selects the non curent player's data
-        
         // make sure cord is in string format
-        cord = cordInputTypeErrorHandler(cord, "attack");
+        cord = this.testCordInputTypeErrorHandler(cord, "attack");
 
         // log the attack for debugging
         console.log(`Player${this.playerTurn} is Attacking: ${cord}. current cell status: ${otherShipGrid[cord]}`);
 
         // handles attack logic
-        if (otherShipGrid[cord] == "ship" || otherShipGrid[cord] == "hit"){
-        // if the cell is a ship or already hit then it is hit
-            othershipGrid = "hit";
+        if (otherShipGrid[cord] == "ship"){
+        // if the cell is a ship then it is hit
+            otherShipGrid[cord] = "hit";
             currentAttackGrid[cord] = "hit";
+            return [otherShipGrid[cord]];
 
+        } 
+        else if (otherShipGrid[cord] == "hit"){ 
+        // if cell is already hit then return hit
+            return [otherShipGrid[cord]];
         } else {
         // other wise it is a miss 
             otherShipGrid[cord] = "miss";
             currentAttackGrid[cord] = "miss";
+            return ["miss"];
         }
 
         //log result for debugging
@@ -258,7 +323,7 @@ class Battle {
     it takes a cord as input and returns the key of the ship in the shipList dictionary
     */
         // make sure cord is in string format
-        cord = cordInputTypeErrorHandler(cord, "identifyShipFromCell");
+        cord = this.testCordInputTypeErrorHandler(cord, "identifyShipFromCell");
         
         //selects the current players shipList for search
         const shipList = this.selectShipList();
@@ -271,7 +336,7 @@ class Battle {
             }
         }
 
-        this.error(`identifyShipFromCell did not find a ship at cord: ${cord}, in list:${shipList} on turn ${this.playerTurn}`);
+        this.error(`identifyShipFromCell did not find a ship at cord: ${cord}, in list:${JSON.stringify(shipList)} on turn ${this.playerTurn}`);
         return null; // no ship found at this cell
     }
 
@@ -283,8 +348,9 @@ class Battle {
 
         // checks if any of the cells already have a ship
         // does not stop duplicates but logs an error
+
         for (const cord in shipCordsArray) {
-            if (this.identifyShipFromCell(cord)) {
+            if (this.selectShipData()[cord] == "ship") {
                 this.error(`SaveShipToList: cord ${cord} already has a ship`);
             }
         }
@@ -293,10 +359,16 @@ class Battle {
         const shipList = this.selectShipList();
 
         // names the ship
-        const shipName = `ship${shipList.length}`;
+        const shipName = `ship${Object.keys(shipList).length}`;
+
+        // convert cords to array format for more consistant data storage
+        let newShipCordsArray = [];
+        for (const cord of shipCordsArray) {
+            newShipCordsArray.push(this.arrayToStringCordConverter(cord));
+        }
 
         // save the ship to the list with its cords
-        shipList[shipName] = shipCordsArray;
+        shipList[shipName] = newShipCordsArray;
     }
 
 //#endregion
@@ -304,34 +376,70 @@ class Battle {
 //#region turn logic
     endTurn() {
     // it ends a turn and changes current player
-
-        // switch player turn
-        this.playerTurn = (this.playerTurn === 1) ? 2 : 1;
+        // switch player turn when attacking
+        this.playerTurn = (this.playerTurn === 1) ? 2 : 1;    
     }
 
-    action(player, cords, playerId){
+    action(playerId, action = "attack", details){
     // takes a player num, cords, and the current action and runs acts accordingly
         // checks if the game is starting and it should send the playerid's to the players.
         let gameStart = false;
         if (this.p1ShipData.length === 0 || this.p2ShipData.length === 0) gameStart = true;
-        let returnData;
+        let returnData ={};
+
+        this.playerAction = action;
 
         // checks if the player id is correct or the game is starting
         if (playerId === this.player1Id || playerId === this.player2Id || gameStart) {
             //checks if the player who sent the request is the current player
-            if (player === this.playerTurn) {
-                if (this.playerAction == "scout") {}
-                else if (this.playerAction == "deploy") {}
-                else if (this.playerAction == "attack") {}
+            let player = 0;
+            if (playerId === this.player1Id) player = 1;
+            else if (playerId === this.player2Id) player = 2;
+
+            if (player === this.playerTurn) { //check for gamestart again to bypass current player so that 2 players can place shisps at the same time
+                let actionData;
+                if (this.playerAction == "scout") {
+                    actionData = this.validateShipPlacement(...details)
+                }
+                else if (this.playerAction == "deploy") {
+                    let deployCords = this.shipCordsFromStartDirectionLength(...details);
+                    actionData = this.deployShip(deployCords);
+                }
+                else if (this.playerAction == "attack" && !gameStart) {// attack can not be preformed on game start
+                    actionData = this.attack(...details);
+                }
                 if (gameStart) returnData.playerId = (player === 1 ? this.player1Id : this.player2Id);
 
+                returnData.actionData = actionData;
                 returnData.fleet = {...this.selectShipData()};
                 returnData.attacks = {...this.selectAttackData()};
+                returnData.playerTurn = this.playerTurn;
+                returnData.playerAction = this.playerAction;
                 return returnData;
             }
-            else console.log(`Its is not ${player}'s turn`);
+            else console.log(`Its is not player${player}'s turn`);
         }
         else (this.error(`ID error: Player${player}| Given Id:${playerId}`));
+    }
+
+    checkGameOver() {
+        let p1Win = true;
+        let p2Win = true;
+
+        for (const cord in this.p1ShipData) {
+            if (this.p1ShipData[cord] === "ship") {
+                p2Win = false;
+            }
+        }
+        for (const cord in this.p2ShipData) {
+            if (this.p2ShipData[cord] === "ship") {
+                p1Win = false;
+            }
+        }
+
+        if (p1Win) return 1;
+        else if (p2Win) return 2;
+        else return 0;
     }
 //#endregion
 
@@ -362,7 +470,7 @@ class Battle {
             let randomRow = Math.floor(Math.random() * this.gridRows);
             let randomCol = Math.floor(Math.random() * this.gridCols);
 
-            let cord = `${randomRow}-${randomCol}`;
+            let cord = `${randomRow},${randomCol}`;
             this.p1ShipData[cord] = "ship";
             this.p2ShipData[cord] = "ship";
 

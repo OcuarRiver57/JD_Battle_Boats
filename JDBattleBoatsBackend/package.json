@@ -1,0 +1,27 @@
+{
+  "name": "jdbattleboatsserver",
+  "version": "1.0.0",
+  "description": "",
+  "main": "fleetCommand.js",
+  "scripts": {
+    "start-server": "node fleetCommand.js",
+    "dev-server": "nodemon fleetCommand.js",
+    "start-local": "node localCommand.js",
+    "dev-local": "nodemon localCommand.js",
+    "battle-tests": "node battleTests.js",
+    "battle-tests-ai": "node battleTestsAI.js",
+    "test": "jest"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "dependencies": {
+    "dotenv": "^17.2.3",
+    "express": "^5.2.1"
+  },
+  "devDependencies": {
+    "jest": "^30.2.0",
+    "nodemon": "^3.1.11"
+  }
+}
