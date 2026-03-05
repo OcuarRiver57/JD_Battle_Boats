@@ -79,7 +79,7 @@ The User Deploys 4 Battle Boats on to a 10x10 grid and then goes back and forth 
     - will know all of your ship locations from the start and not miss any shots.
     - you get first turn but if you miss one shot then you will lose.
 
-### PVP
+### PVP (after ai is complete)
 
 - A server Browser to view currently open games
 
@@ -93,7 +93,7 @@ The User Deploys 4 Battle Boats on to a 10x10 grid and then goes back and forth 
 
 - web socket?
 
-### More Gameplay Features
+### More Gameplay Features (after pvp is complete)
 
 #### Special power ups
 
