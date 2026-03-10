@@ -13,12 +13,12 @@ This is an [Expo](https://expo.dev) project created with [`create-expo-app`](htt
    ```bash
    npx expo start
    ```
- -or-
+   -or-
    ```bash
    npm start
    ```
 
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+-  You can use [Expo Go](https://expo.dev/go), a limited sandbox to try out app development with Expo
 
 ## Citations
 
