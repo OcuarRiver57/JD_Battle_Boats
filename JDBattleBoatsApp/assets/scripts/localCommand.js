@@ -30,7 +30,10 @@ function createInstance(aiDificulty = 0){
     let gameid = Battle.generateGameId();
     battleList[gameid] = new Battle(gameid);
 
-    switch(aiDificulty){
+    const aiDifficultyNumber = Number.isInteger(Number(aiDificulty)) ? Number(aiDificulty) : 1;
+    console.log(`[LocalCommand] Creating instance - GameID: ${gameid}, AI Difficulty: ${aiDifficultyNumber}`);
+
+    switch(aiDifficultyNumber){
         case 1:
             aiList[gameid] = new opponentAI(gameid, 1);
             break;
@@ -43,7 +46,19 @@ function createInstance(aiDificulty = 0){
         case 4:
             aiList[gameid] = new opponentAI(gameid, 4);
             break;
-  }
+        case 5:
+            aiList[gameid] = new opponentAI(gameid, 5);
+            break;
+        case 6:
+            aiList[gameid] = new opponentAI(gameid, 6);
+            break;
+        default:
+            aiList[gameid] = new opponentAI(gameid, 1);
+            break;
+        }
+
+        console.log(`[LocalCommand] Created AI instance - shipsPlaced: ${aiList[gameid].shipsPlaced}`);
+        return battleList[gameid];
 }
 
 function deleteInstance(gameid){
@@ -53,6 +68,18 @@ function deleteInstance(gameid){
     if (aiList[gameid]){
         delete aiList[gameid];
     }
+}
+
+function getInstance(gameid){
+    console.log(`[LocalCommand] getInstance called for ${gameid}: ${!!battleList[gameid]}`);
+    return battleList[gameid] || null;
+}
+
+function getAIInstance(gameid){
+    // Retrieve an AI instance by its game ID
+    const ai = aiList[gameid] || null;
+    console.log(`[LocalCommand] getAIInstance called for ${gameid}: exists=${!!ai}, shipsPlaced=${ai ? ai.shipsPlaced : 'N/A'}`);
+    return aiList[gameid] || null;
 }
 
 function inputHandler(detailsJson){  
@@ -77,4 +104,4 @@ function inputHandler(detailsJson){
     return JSON.stringify(returnData);
 }
 
-export { createInstance, deleteInstance, inputHandler };
+export { createInstance, deleteInstance, getInstance, getAIInstance, inputHandler };

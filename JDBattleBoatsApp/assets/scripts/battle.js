@@ -383,8 +383,7 @@ export default class Battle {
     action(playerId, action = "attack", details){
     // takes a player num, cords, and the current action and runs acts accordingly
         // checks if the game is starting and it should send the playerid's to the players.
-        let gameStart = false;
-        if (this.p1ShipData.length === 0 || this.p2ShipData.length === 0) gameStart = true;
+        let gameStart = Object.keys(this.p1ShipList).length < 4 || Object.keys(this.p2ShipList).length < 4;
         let returnData ={};
 
         this.playerAction = action;
@@ -396,7 +395,10 @@ export default class Battle {
             if (playerId === this.player1Id) player = 1;
             else if (playerId === this.player2Id) player = 2;
 
-            if (player === this.playerTurn) { //check for gamestart again to bypass current player so that 2 players can place shisps at the same time
+            const deployDuringSetup = this.playerAction == "deploy" && gameStart;
+            console.log(`[Battle] Action called: player=${player}, action=${action}, turn=${this.playerTurn}, gameStart=${gameStart}, deployDuringSetup=${deployDuringSetup}`);
+            
+            if (player === this.playerTurn || deployDuringSetup) { // allow both players to deploy while setup is active
                 let actionData;
                 if (this.playerAction == "scout") {
                     actionData = this.validateShipPlacement(...details)
@@ -407,6 +409,7 @@ export default class Battle {
                 }
                 else if (this.playerAction == "attack" && !gameStart) {// attack can not be preformed on game start
                     actionData = this.attack(...details);
+                    this.endTurn();
                 }
                 if (gameStart) returnData.playerId = (player === 1 ? this.player1Id : this.player2Id);
 
@@ -470,7 +473,7 @@ export default class Battle {
             let randomRow = Math.floor(Math.random() * this.gridRows);
             let randomCol = Math.floor(Math.random() * this.gridCols);
 
-            let cord = `${randomRow},${randomCol}`;
+            let cord = `${randomRow}:${randomCol}`;
             this.p1ShipData[cord] = "ship";
             this.p2ShipData[cord] = "ship";
 
