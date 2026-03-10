@@ -1,3 +1,10 @@
+/*
+File Summary:
+This file renders the app landing screen where the user selects AI difficulty
+and starts a new game. It includes a dropdown component and routes to fleet
+setup with the selected difficulty.
+*/
+
 import { Pressable, Text, View, StyleSheet} from "react-native";
 import { useState } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -6,6 +13,7 @@ import { router } from "expo-router";
 
 //made by Jacob Dykstra 3/10/26
 
+// Home screen component for choosing AI level and starting gameplay.
 export default function Index() {
     const [dropValue, setDropValue] = useState(null);
     return (
@@ -19,6 +27,7 @@ export default function Index() {
     )
 }
 
+    // Difficulty selector UI used by the home screen.
 function AiDropDown({value, setValue}) {
     const [isFocus, setIsFocus] = useState(false);
 
@@ -30,6 +39,7 @@ function AiDropDown({value, setValue}) {
     {label: "Very Hard", value: 5},
     {label: "Impossible", value: 6},
     ]
+    // Renders the floating label only when focused or when a value is selected.
     const renderLabel = () => {
       if (value || isFocus) {
         return (
@@ -68,6 +78,7 @@ function AiDropDown({value, setValue}) {
     )
 }
 
+    // Navigates to fleet setup and passes the selected AI difficulty.
 function startGame(aiDifficulty) {
     router.push({
         pathname: "/ManageFleetScreen",

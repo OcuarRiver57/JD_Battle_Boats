@@ -1,3 +1,10 @@
+/*
+File Summary:
+This screen runs the live battle phase between the player and AI. It initializes
+board state, handles player attacks, triggers AI turns, tracks win conditions,
+and renders both fleet and attack grids with turn/status UI.
+*/
+
 import { Pressable, Text, View, FlatList, Dimensions, StyleSheet, Modal, Alert } from "react-native";
 import { useState, useEffect } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -5,12 +12,14 @@ import { getInstance, getAIInstance } from "./../assets/scripts/localCommand.js"
 import { useLocalSearchParams, useRouter } from "expo-router";
 
 // Coordinate converter utilities
+// Converts UI grid IDs (row-col) to Battle coordinates (x:y).
 const gridIdToCord = (id) => {
   // Converts "row-col" format to "x:y" format (where x=col, y=row for Battle.js)
   const [row, col] = id.split("-");
   return `${col}:${row}`; // Swap to col:row because Battle.js uses x:y where x=column, y=row
 };
 
+// Converts Battle coordinates (x:y or [x, y]) back to UI grid IDs (row-col).
 const cordToGridId = (cord) => {
   // Converts "x:y" format (col:row) to "row-col" format for grid IDs
   if (typeof cord === "string") {
@@ -23,6 +32,7 @@ const cordToGridId = (cord) => {
   return cord;
 };
 
+// Main battle screen component for game loop control and battle rendering.
 export default function Index() {
   const { gameInstanceId } = useLocalSearchParams();
   const router = useRouter();
@@ -105,6 +115,7 @@ export default function Index() {
     }
   }, [currentTurn, gameOver]);
 
+  // Builds flat grid data used by FlatList to render a square board.
   const flatgridData = (size) => {
     let grid = [];
     for (let i = 0; i < size; i++)
@@ -113,6 +124,7 @@ export default function Index() {
     return grid;
   };
 
+  // Executes a player attack after validating turn state and duplicate shots.
   const handleAttack = (cellId) => {
     if (currentTurn !== 1 || gameOver || isAIThinking) return;
     
@@ -148,10 +160,12 @@ export default function Index() {
     }
   };
 
+  // Sends the player back to the home screen to start a new match.
   const handlePlayAgain = () => {
     router.push("/");
   };
 
+  // Counts intact ship cells to display remaining fleet status.
   const countRemainingShips = (shipData) => {
     let count = 0;
     for (const cord in shipData) {
@@ -247,6 +261,7 @@ export default function Index() {
   );
 }
 
+// Renders one board cell with color based on gameplay state.
 function GridSquare({ clickhandler, squareId, size, cellType }) {
   let backgroundColor = "#87CEEB"; // Default: light blue water
   
@@ -283,11 +298,13 @@ function GridSquare({ clickhandler, squareId, size, cellType }) {
   );
 }
 
+// Displays the player's own fleet board including hits, misses, and intact ships.
 function FleetGrid({ data, shipData }) {
   const [gridSize] = useState(10);
   const windowWidth = Dimensions.get("window").width;
   const cellSize = Math.floor(windowWidth / gridSize) - 2;
 
+  // Maps underlying ship cell values to renderable visual cell types.
   const getCellType = (cellId) => {
     const cord = gridIdToCord(cellId);
     const cellValue = shipData[cord];
@@ -322,11 +339,13 @@ function FleetGrid({ data, shipData }) {
   );
 }
 
+// Displays the player's attack board and forwards valid taps as attack actions.
 function AttackGrid({ data, attackData, onAttack, disabled }) {
   const [gridSize] = useState(10);
   const windowWidth = Dimensions.get("window").width;
   const cellSize = Math.floor(windowWidth / gridSize) - 2;
 
+  // Maps attack history values to visual cell state for the attack grid.
   const getCellType = (cellId) => {
     const cord = gridIdToCord(cellId);
     const cellValue = attackData[cord];
@@ -336,6 +355,7 @@ function AttackGrid({ data, attackData, onAttack, disabled }) {
     return "water";
   };
 
+  // Guards attack clicks when the grid is disabled.
   const clickhandler = (id) => {
     if (disabled) return;
     onAttack && onAttack(id);

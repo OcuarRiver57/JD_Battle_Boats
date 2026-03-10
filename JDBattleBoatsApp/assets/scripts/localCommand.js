@@ -1,3 +1,10 @@
+/*
+File Summary:
+This file manages in-memory game and AI instances for local play. It provides
+helpers to create, retrieve, and delete game sessions, and a request handler that
+routes client action payloads to the correct Battle instance.
+*/
+
 // to do list
 /*
 - create handlers for input
@@ -26,6 +33,7 @@ import opponentAI from './opponentAI.js';
 let battleList = {};
 let aiList = {}
 
+// Creates a new Battle session and matching AI instance for a selected difficulty.
 function createInstance(aiDificulty = 0){
     let gameid = Battle.generateGameId();
     battleList[gameid] = new Battle(gameid);
@@ -61,6 +69,7 @@ function createInstance(aiDificulty = 0){
         return battleList[gameid];
 }
 
+// Removes a game and AI instance from memory when a session ends.
 function deleteInstance(gameid){
     if (battleList[gameid]){
         delete battleList[gameid];
@@ -70,11 +79,13 @@ function deleteInstance(gameid){
     }
 }
 
+// Returns a Battle instance by game ID, or null when it does not exist.
 function getInstance(gameid){
     console.log(`[LocalCommand] getInstance called for ${gameid}: ${!!battleList[gameid]}`);
     return battleList[gameid] || null;
 }
 
+// Returns the AI controller for a game ID, or null when none is registered.
 function getAIInstance(gameid){
     // Retrieve an AI instance by its game ID
     const ai = aiList[gameid] || null;
@@ -82,6 +93,7 @@ function getAIInstance(gameid){
     return aiList[gameid] || null;
 }
 
+// Parses client JSON input and forwards the action to the selected game instance.
 function inputHandler(detailsJson){  
 // parses the input details from the client and sends it to the correct battle instance
     let details = JSON.parse(detailsJson);

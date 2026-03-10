@@ -1,5 +1,11 @@
-import Battle from './battle.js';
+/*
+File Summary:
+This file defines AI opponents for local Battleship games. It includes a factory
+that selects an AI class by difficulty, a shared base AI for ship placement and
+attack tracking, and multiple strategy variants from random to near-perfect play.
+*/
 
+// Factory function that returns an AI strategy instance for the chosen difficulty.
 export default function opponentAI(gameId, difficulty) {
     switch(difficulty){
         case 1:
@@ -17,7 +23,9 @@ export default function opponentAI(gameId, difficulty) {
     }
 }
 
+// Base AI class containing shared setup, ship placement, and attack helpers.
 class OpponentAI {
+    // Initializes persistent AI state for one game session.
     constructor(gameId) {
         this.gameId = gameId;
         this.playerId = null;
@@ -30,6 +38,7 @@ class OpponentAI {
         console.log(`[AI] OpponentAI constructor called - GameID: ${gameId}, shipsPlaced initialized to: ${this.shipsPlaced}`);
     }
 
+    // Generates a valid ship start, direction, and length for the next ship to place.
     placeShip() {
         const shipLength = this.shipLengths[this.shipsPlaced];
         let validPlacement = false;
@@ -49,6 +58,7 @@ class OpponentAI {
         return [shipStart, shipDirection, shipLength];
     }
 
+    // Builds every coordinate a ship would occupy from a starting cell and direction.
     generateShipCoordinates(startX, startY, direction, length) {
         const coordinates = [];
         for (let i = 0; i < length; i++) {
@@ -61,6 +71,7 @@ class OpponentAI {
         return coordinates;
     }
 
+    // Verifies that candidate ship coordinates are inside the grid and non-overlapping.
     validatePlacement(coordinates) {
         // Check if all coordinates are within bounds and not already occupied
         for (const coord of coordinates) {
@@ -75,6 +86,7 @@ class OpponentAI {
         return true;
     }
 
+    // Runs one AI turn: place ships during setup, then attack once setup is complete.
     takeTurn(battleInstance) {
         if (!this.playerId && battleInstance.player2Id) {
             this.playerId = battleInstance.player2Id;
@@ -110,18 +122,21 @@ class OpponentAI {
         }
     }
 
+    // Chooses an attack target; subclasses override this with smarter strategies.
     selectTarget() {
         // Override in subclasses for different strategies
         const coordinate = this.getRandomCoordinate();
         return !this.attackedCoordinates.includes(coordinate) ? coordinate : null;
     }
 
+    // Returns a random coordinate in the 10x10 board.
     getRandomCoordinate() {
         const x = Math.floor(Math.random() * 10);
         const y = Math.floor(Math.random() * 10);
         return `${x}:${y}`;
     }
 
+    // Records whether an AI attack was a hit or miss and stores the attacked coordinate.
     recordAttack(coordinate, result) {
         this.attackedCoordinates.push(coordinate);
         if (result && result.actionData && result.actionData[0] === "hit") {
@@ -131,6 +146,7 @@ class OpponentAI {
         }
     }
 
+    // Returns valid, not-yet-attacked adjacent cells around a coordinate.
     getAdjacentCoordinates(coordinate) {
         const [x, y] = coordinate.split(':').map(Number);
         const adjacent = [];
@@ -150,6 +166,7 @@ class OpponentAI {
     }
 }
 
+// Difficulty 1 AI: random targeting with basic duplicate avoidance.
 class VeryEasyOpponentAI extends OpponentAI {
     // Attacks random locations on grid
     selectTarget() {
@@ -168,6 +185,7 @@ class VeryEasyOpponentAI extends OpponentAI {
     }
 }
 
+// Difficulty 2 AI: random targeting that retries until an untried coordinate is found.
 class EasyOpponentAI extends OpponentAI {
     // Attacks random locations with no repeat attacks
     selectTarget() {
@@ -186,6 +204,7 @@ class EasyOpponentAI extends OpponentAI {
     }
 }
 
+// Difficulty 3 AI: random search plus adjacent follow-up after a hit.
 class MediumOpponentAI extends OpponentAI {
     // Random with no repeats, targets area around hits
     selectTarget() {
@@ -214,13 +233,16 @@ class MediumOpponentAI extends OpponentAI {
     }
 }
 
+// Difficulty 4 AI: checkerboard search pattern with adjacent follow-up behavior.
 class HardOpponentAI extends OpponentAI {
+    // Precomputes search pattern data for targeted scanning.
     constructor(gameId) {
         super(gameId);
         this.searchPatterns = this.generateSearchPatterns();
         this.patternIndex = 0;
     }
 
+    // Creates a shuffled checkerboard pattern to reduce wasted search shots.
     generateSearchPatterns() {
         const patterns = [];
         // Checkerboard pattern
@@ -234,6 +256,7 @@ class HardOpponentAI extends OpponentAI {
         return patterns.sort(() => Math.random() - 0.5);
     }
 
+    // Chooses adjacent cells after hits, otherwise advances through the search pattern.
     selectTarget() {
         // If there are recent hits, target adjacent squares
         if (this.hits.length > 0) {
@@ -255,7 +278,9 @@ class HardOpponentAI extends OpponentAI {
     }
 }
 
+// Difficulty 5 AI: pattern search that attempts to finish known target ships.
 class VeryHardOpponentAI extends OpponentAI {
+    // Initializes additional state for tracking focused ship elimination.
     constructor(gameId) {
         super(gameId);
         this.searchPatterns = this.generateSearchPatterns();
@@ -263,6 +288,7 @@ class VeryHardOpponentAI extends OpponentAI {
         this.targetedShip = null;
     }
 
+    // Creates a shuffled checkerboard scan list used before focused attacks.
     generateSearchPatterns() {
         const patterns = [];
         for (let x = 0; x < 10; x++) {
@@ -275,6 +301,7 @@ class VeryHardOpponentAI extends OpponentAI {
         return patterns.sort(() => Math.random() - 0.5);
     }
 
+    // Prioritizes finishing targeted ships, then adjacent hits, then pattern search.
     selectTarget() {
         // If targeting a ship, know its location and attack until sunk
         if (this.targetedShip && this.targetedShip.length > 0) {
@@ -307,6 +334,7 @@ class VeryHardOpponentAI extends OpponentAI {
     }
 }
 
+// Difficulty 6 AI: intended "perfect" behavior with near-complete coverage.
 class ImpossibleOpponentAI extends OpponentAI {
     // Knows all opponent ship locations and never misses
     selectTarget() {

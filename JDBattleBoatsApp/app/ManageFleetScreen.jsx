@@ -1,3 +1,10 @@
+/*
+File Summary:
+This screen handles pre-battle fleet placement for the player. It creates a game
+instance, previews ship placement by direction and length, validates placement,
+submits deploy actions, and routes to the battle screen once setup is complete.
+*/
+
 import { Pressable, Text, View, FlatList, Dimensions, TextInput, StyleSheet, Alert} from "react-native";
 import { useMemo, useState } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -5,12 +12,14 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { createInstance } from "./../assets/scripts/localCommand.js";
 
 // Coordinate converter utilities
+// Converts UI grid IDs (row-col) to Battle coordinates (x:y).
 const gridIdToCord = (id) => {
   // Converts "row-col" format to "x:y" format (where x=col, y=row for Battle.js)
   const [row, col] = id.split("-");
   return `${col}:${row}`; // Swap to col:row because Battle.js uses x:y where x=column, y=row
 };
 
+// Converts Battle coordinates (x:y or [x, y]) back to UI grid IDs (row-col).
 const cordToGridId = (cord) => {
   // Converts "x:y" format (col:row) to "row-col" format for grid IDs
   if (typeof cord === "string") {
@@ -24,6 +33,7 @@ const cordToGridId = (cord) => {
 };
 
 // Calculate ship coordinates from start position, direction, and length
+// Builds a ship footprint in grid ID format from a start cell, direction, and length.
 const shipCordsFromStartDirectionLength = (startGridId, direction, length) => {
   const [row, col] = startGridId.split("-").map(Number);
   let cells = [];
@@ -49,6 +59,7 @@ const shipCordsFromStartDirectionLength = (startGridId, direction, length) => {
 };
 
 // Validate ship placement
+// Returns invalid cells when placement is out of bounds or overlapping existing ships.
 const validateShipPlacement = (shipCells, placedShipCells, gridRows = 10, gridCols = 10) => {
   let invalidCells = [];
   
@@ -67,6 +78,7 @@ const validateShipPlacement = (shipCells, placedShipCells, gridRows = 10, gridCo
   return invalidCells;
 };
 
+// Fleet management screen component for placing all player ships before battle.
 export default function Index() {
   const { ailevel } = useLocalSearchParams();
   const router = useRouter();
@@ -92,6 +104,7 @@ export default function Index() {
     return grid;
   };
   
+  // Previews a ship placement at the tapped cell and updates validity state.
   const handleCellPress = (cellId) => {
     if (currentShipIndex >= shipLengths.length) return;
     
@@ -109,6 +122,7 @@ export default function Index() {
     }
   };
   
+  // Commits the current preview to game state and advances to the next ship.
   const handleConfirmPlacement = () => {
     if (!previewValid || previewCells.length === 0) {
       Alert.alert("Invalid Placement", "Please select a valid location for your ship.");
@@ -135,6 +149,7 @@ export default function Index() {
     }
   };
   
+  // Clears all placed ships and resets local and game placement state.
   const handleResetFleet = () => {
     Alert.alert(
       "Reset Fleet",
@@ -158,6 +173,7 @@ export default function Index() {
     );
   };
   
+  // Routes to the battle screen once all ships are placed.
   const handleStartGame = () => {
     router.push({
       pathname: "/BattleScreen",
@@ -165,6 +181,7 @@ export default function Index() {
     });
   };
   
+  // Rotates placement direction and recalculates preview validity.
   const toggleDirection = () => {
     const directions = ["right", "down", "left", "up"];
     const currentIndex = directions.indexOf(shipDirection);
@@ -262,6 +279,7 @@ export default function Index() {
   );
 }
 
+// Single grid cell component with colors for placed and preview states.
 function GridSquare({ clickhandler, squareId, size, isPlaced, isPreview, isPreviewValid }) {
   let backgroundColor = "lightblue"; // Empty cell
   
@@ -290,6 +308,7 @@ function GridSquare({ clickhandler, squareId, size, isPlaced, isPreview, isPrevi
   );
 }
 
+// Reusable 10x10 board renderer for placement interactions.
 function FlatGrid({ data, onCellPress, placedShipCells = [], previewCells = [], previewValid = true, disabled = false }) {
   // size based on screen width / columns
   const [gridSize, setGridSize] = useState(10);
@@ -325,6 +344,7 @@ function FlatGrid({ data, onCellPress, placedShipCells = [], previewCells = [], 
   );
 }
 
+// Displays the player's currently placed ships in a compact list preview.
 function FleetList({fleet = {}}) {
   let ships = [];
   for(let ship in fleet) {

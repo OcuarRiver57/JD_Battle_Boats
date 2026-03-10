@@ -1,3 +1,10 @@
+/*
+File Summary:
+This file defines the Battle class, which contains the core game state and rules
+for a two-player Battleship-style match. It handles ID generation, ship placement,
+attack resolution, turn flow, and helper utilities used by the React Native screens.
+*/
+
 // to do list
 /*
 - implement the logic for moving ships on the grid
@@ -12,6 +19,7 @@
 */
 
 export default class Battle {
+    // Creates a new game instance with player state, board data, and generated IDs.
     constructor(gameId) {
         // Initialize game state
         this.playerTurn = 1; // 1 or 2
@@ -54,6 +62,7 @@ export default class Battle {
     }
 
 //#region static utils
+    // Builds a short uppercase game code used to reference a match instance.
     static generateGameId(length = 5) {
     // generates random id for game that can be shard with other to play same game
         const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
@@ -64,6 +73,7 @@ export default class Battle {
         return id;
     }
 
+    // Converts a coordinate array [x, y] into the string format "x:y".
     arrayToStringCordConverter(cord){
         if (Array.isArray(cord)) {
             return `${cord[0]}:${cord[1]}`;
@@ -72,6 +82,7 @@ export default class Battle {
         
     }
 
+    // Converts a coordinate string "x:y" into an array [x, y].
     stringToArrayCordConverter(cord){
         if (typeof cord === "string") {
             let cords = cord.split(":");
@@ -83,12 +94,14 @@ export default class Battle {
         
     }
 
+    // Converts coordinates in either direction based on the input type.
     cordConverter(cord){
         if (typeof cord === "string") return this.stringToArrayCordConverter(cord);
         else if (Array.isArray(cord)) return this.arrayToStringCordConverter(cord);
         else this.error(`cordConverter input is type "${typeof cord}" when it should be "array" or "string"`);
     }
 
+    // Generates a unique player ID for identifying client requests.
     generatePlayerId(length = 16) {
     // generates random id for playsers that will get saved to client
         const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
@@ -99,6 +112,7 @@ export default class Battle {
         return id;
     }
 
+    // Returns the opposite player number for the current turn context.
     getOtherPlayer(player = this.playerTurn){
         return (player === 1) ? 2 : 1;
     }
@@ -194,6 +208,7 @@ export default class Battle {
         return shipCordsArray;
     }
 
+    // Placeholder for ship movement rules that have not been implemented yet.
     MoveShip(cord) {
         console.log("move ship not implemented", cord); // handle moving ship logic
     }
@@ -425,6 +440,7 @@ export default class Battle {
         else (this.error(`ID error: Player${player}| Given Id:${playerId}`));
     }
 
+    // Checks whether either player's remaining ship cells are all destroyed.
     checkGameOver() {
         let p1Win = true;
         let p2Win = true;
@@ -495,6 +511,7 @@ export default class Battle {
         return cord;
     }
 
+    // Logs a detailed snapshot of game state to help diagnose runtime issues.
     error(errorDescription = "no error description provided") {
         console.error(`
             Error in game ${this.gameId}:
