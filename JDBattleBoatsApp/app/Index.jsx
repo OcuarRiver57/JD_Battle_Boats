@@ -4,6 +4,8 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Dropdown } from 'react-native-element-dropdown';
 import { router } from "expo-router";
 
+//made by Jacob Dykstra 3/10/26
+
 export default function Index() {
     const [dropValue, setDropValue] = useState(null);
     return (
@@ -21,12 +23,12 @@ function AiDropDown({value, setValue}) {
     const [isFocus, setIsFocus] = useState(false);
 
     const aiDifficulties = [
-        {label: "Very Easy", Value: 1},
-        {label: "Easy", Value: 2},
-        {label: "Medium", Value: 3},
-        {label: "Hard", Value: 4},
-        {label: "Very Hard", Value: 5},
-        {label: "Impossible", Value: 6},
+    {label: "Very Easy", value: 1},
+    {label: "Easy", value: 2},
+    {label: "Medium", value: 3},
+    {label: "Hard", value: 4},
+    {label: "Very Hard", value: 5},
+    {label: "Impossible", value: 6},
     ]
     const renderLabel = () => {
       if (value || isFocus) {
@@ -68,8 +70,8 @@ function AiDropDown({value, setValue}) {
 
 function startGame(aiDifficulty) {
     router.push({
-        pathname: "/BattleScreen",
-        params: {ailevel: aiDifficulty},
+        pathname: "/ManageFleetScreen",
+    params: {ailevel: aiDifficulty ?? 1},
     });
 }
 
