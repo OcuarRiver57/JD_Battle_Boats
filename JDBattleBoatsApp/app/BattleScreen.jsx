@@ -69,14 +69,20 @@ export default function Index() {
     // Ensure AI has placed all 4 ships
     if (aiInstance) {
       console.log(`[BattleScreen] Starting AI ship placement loop`);
-      let shipCount = Object.keys(gameInstance.p2ShipList || {}).length;
+      //let shipCount = Object.keys(gameInstance.p2ShipList || {}).length;
+      let shipCount = 0; 
       console.log(`[BattleScreen] Initial ship count: ${shipCount}, AI shipsPlaced: ${aiInstance.shipsPlaced}`);
       let attempts = 0;
 
+
+      /*
+      TODO: ship count is always 0 fix or check differently
+      */
       while (shipCount < 4 && attempts < 50) {
         console.log(`[BattleScreen] Loop iteration ${attempts + 1}: calling takeTurn`);
         aiInstance.takeTurn(gameInstance);
-        shipCount = Object.keys(gameInstance.p2ShipList || {}).length;
+        //shipCount = Object.keys(gameInstance.p2ShipList || {}).length;
+        shipCount = aiInstance.shipsPlaced; // Use AI's internal count of placed ships
         console.log(`[BattleScreen] After takeTurn #${attempts + 1}: shipCount=${shipCount}, AI.shipsPlaced=${aiInstance.shipsPlaced}`);
         attempts++;
       }
