@@ -30,4 +30,4 @@ This project uses the following libraries and assets.
 
 ## Videos
 - [Code Demo](https://www.youtube.com/watch?v=...)
-- [Code Walkthrough](https://youtu.be/GphsleYu9Sg)
+- [Code Walkthrough](https://www.youtube.com/shorts/B_oY0F96sI0)
