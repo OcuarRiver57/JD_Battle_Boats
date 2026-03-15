@@ -362,6 +362,12 @@ export default class Battle {
             console.log(`[Battle] Action called: player=${player}, action=${action}, turn=${this.playerTurn}, gameStart=${gameStart}, deployDuringSetup=${deployDuringSetup}`);
             
             if (player === this.playerTurn || deployDuringSetup) { // allow both players to deploy while setup is active
+                const actingPlayer = player;
+                const originalTurn = this.playerTurn;
+
+                // Run all selectors/mutations in the acting player's context.
+                this.playerTurn = actingPlayer;
+
                 let actionData;
                 if (this.playerAction == "scout") {
                     actionData = this.validateShipPlacement(...details)
@@ -374,11 +380,17 @@ export default class Battle {
                     actionData = this.attack(...details);
                     this.endTurn();
                 }
+
+                // During setup, deploy/scout should not advance global turn.
+                if (gameStart && this.playerAction !== "attack") {
+                    this.playerTurn = originalTurn;
+                }
+
                 if (gameStart) returnData.playerId = (player === 1 ? this.player1Id : this.player2Id);
 
                 returnData.actionData = actionData;
-                returnData.fleet = {...this.selectShipData()};
-                returnData.attacks = {...this.selectAttackData()};
+                returnData.fleet = {...this.selectShipData(actingPlayer)};
+                returnData.attacks = {...this.selectAttackData(actingPlayer)};
                 returnData.playerTurn = this.playerTurn;
                 returnData.playerAction = this.playerAction;
                 return returnData;

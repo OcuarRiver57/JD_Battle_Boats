@@ -5,7 +5,7 @@ board state, handles player attacks, triggers AI turns, tracks win conditions,
 and renders both fleet and attack grids with turn/status UI.
 */
 
-import { Pressable, Text, View, FlatList, Dimensions, StyleSheet, Modal, Alert } from "react-native";
+import { Pressable, Text, View, FlatList, Dimensions, StyleSheet, Modal, Alert, ScrollView } from "react-native";
 import { useState, useEffect } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { getInstance, getAIInstance } from "./../assets/scripts/localCommand.js";
@@ -52,6 +52,7 @@ export default function Index() {
   const [winner, setWinner] = useState(0);
   const [isAIThinking, setIsAIThinking] = useState(false);
   const [lastAttackResult, setLastAttackResult] = useState("");
+  const isPlayerTurn = Number(currentTurn) === 1;
 
   // Initialize game state and ensure AI ships are placed
   useEffect(() => {
@@ -64,7 +65,7 @@ export default function Index() {
     // Initialize player data
     setPlayerShipData({ ...gameInstance.p1ShipData });
     setPlayerAttackData({ ...gameInstance.p1AttackData });
-    setCurrentTurn(gameInstance.playerTurn);
+    setCurrentTurn(Number(gameInstance.playerTurn));
 
     // Ensure AI has placed all 4 ships
     if (aiInstance) {
@@ -96,7 +97,7 @@ export default function Index() {
 
   // Auto-trigger AI turn
   useEffect(() => {
-    if (currentTurn === 2 && !gameOver && gameInstance && aiInstance) {
+    if (Number(currentTurn) === 2 && !gameOver && gameInstance && aiInstance) {
       setIsAIThinking(true);
       
       // Add delay for better UX
@@ -106,7 +107,7 @@ export default function Index() {
         // Update state after AI turn
         setPlayerShipData({ ...gameInstance.p1ShipData });
         setAiShipData({ ...gameInstance.p2ShipData });
-        setCurrentTurn(gameInstance.playerTurn);
+        setCurrentTurn(Number(gameInstance.playerTurn));
         setIsAIThinking(false);
         
         // Check game over after AI turn
@@ -132,7 +133,7 @@ export default function Index() {
 
   // Executes a player attack after validating turn state and duplicate shots.
   const handleAttack = (cellId) => {
-    if (currentTurn !== 1 || gameOver || isAIThinking) return;
+    if (Number(currentTurn) !== 1 || gameOver || isAIThinking || !gameInstance) return;
     
     // Convert grid ID to Battle.js coordinate
     const cord = gridIdToCord(cellId);
@@ -146,14 +147,15 @@ export default function Index() {
     // Execute attack
     const playerId = gameInstance.player1Id;
     const result = gameInstance.action(playerId, "attack", [cord]);
+    console.log(`[BattleScreen] Player attack sent: ${cord}`, result);
 
     if (result && result.actionData) {
       const attackResult = result.actionData[0]; // "hit" or "miss"
       
       // Update state with attack result
-      setPlayerAttackData({ ...result.attacks });
+      setPlayerAttackData({ ...(result.attacks || gameInstance.p1AttackData || {}) });
       setAiShipData({ ...gameInstance.p2ShipData });
-      setCurrentTurn(result.playerTurn);
+      setCurrentTurn(Number(result.playerTurn));
       
       setLastAttackResult(attackResult === "hit" ? "HIT!" : "Miss");
       
@@ -163,6 +165,8 @@ export default function Index() {
         setGameOver(true);
         setWinner(gameOverResult);
       }
+    } else {
+      Alert.alert("Attack Failed", "Could not process attack. Please try again.");
     }
   };
 
@@ -187,48 +191,50 @@ export default function Index() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>Battle in Progress</Text>
-        {!gameOver && (
-          <Text style={[styles.turnIndicator, currentTurn === 1 ? styles.yourTurn : styles.aiTurn]}>
-            {isAIThinking ? "🤖 AI Thinking..." : currentTurn === 1 ? "🎯 Your Turn" : "⏳ AI's Turn"}
-          </Text>
-        )}
-        {lastAttackResult && !gameOver && (
-          <Text style={styles.attackResult}>{lastAttackResult}</Text>
-        )}
-      </View>
-
-      <View style={styles.statsContainer}>
-        <View style={styles.statBox}>
-          <Text style={styles.statLabel}>Your Ships</Text>
-          <Text style={styles.statValue}>{playerShipsRemaining} remaining</Text>
-        </View>
-        <View style={styles.statBox}>
-          <Text style={styles.statLabel}>Enemy Ships</Text>
-          <Text style={styles.statValue}>{enemyShipsRemaining} remaining</Text>
-        </View>
-      </View>
-
-      <View style={styles.gridsContainer}>
-        <View style={styles.gridSection}>
-          <Text style={styles.gridTitle}>Your Fleet</Text>
-          <FleetGrid 
-            data={flatgridData(10)}
-            shipData={playerShipData}
-          />
+      <ScrollView contentContainerStyle={styles.contentContainer} showsVerticalScrollIndicator={false}>
+        <View style={styles.header}>
+          <Text style={styles.title}>Battle in Progress</Text>
+          {!gameOver && (
+            <Text style={[styles.turnIndicator, isPlayerTurn ? styles.yourTurn : styles.aiTurn]}>
+              {isAIThinking ? "🤖 AI Thinking..." : isPlayerTurn ? "🎯 Your Turn" : "⏳ AI's Turn"}
+            </Text>
+          )}
+          {lastAttackResult && !gameOver && (
+            <Text style={styles.attackResult}>{lastAttackResult}</Text>
+          )}
         </View>
 
-        <View style={styles.gridSection}>
-          <Text style={styles.gridTitle}>Attack Grid</Text>
-          <AttackGrid 
-            data={flatgridData(10)}
-            attackData={playerAttackData}
-            onAttack={handleAttack}
-            disabled={currentTurn !== 1 || gameOver || isAIThinking}
-          />
+        <View style={styles.statsContainer}>
+          <View style={styles.statBox}>
+            <Text style={styles.statLabel}>Your Ships</Text>
+            <Text style={styles.statValue}>{playerShipsRemaining} remaining</Text>
+          </View>
+          <View style={styles.statBox}>
+            <Text style={styles.statLabel}>Enemy Ships</Text>
+            <Text style={styles.statValue}>{enemyShipsRemaining} remaining</Text>
+          </View>
         </View>
-      </View>
+
+        <View style={styles.gridsContainer}>
+          <View style={styles.gridSection}>
+            <Text style={styles.gridTitle}>Your Fleet</Text>
+            <FleetGrid 
+              data={flatgridData(10)}
+              shipData={playerShipData}
+            />
+          </View>
+
+          <View style={styles.gridSection}>
+            <Text style={styles.gridTitle}>Attack Grid</Text>
+            <AttackGrid 
+              data={flatgridData(10)}
+              attackData={playerAttackData}
+              onAttack={handleAttack}
+              disabled={!isPlayerTurn || gameOver || isAIThinking}
+            />
+          </View>
+        </View>
+      </ScrollView>
 
       {/* Game Over Modal */}
       <Modal
@@ -268,7 +274,7 @@ export default function Index() {
 }
 
 // Renders one board cell with color based on gameplay state.
-function GridSquare({ clickhandler, squareId, size, cellType }) {
+function GridSquare({ clickhandler, squareId, size, cellType, disabled = false }) {
   let backgroundColor = "#87CEEB"; // Default: light blue water
   
   if (cellType === "ship") {
@@ -289,7 +295,7 @@ function GridSquare({ clickhandler, squareId, size, cellType }) {
     <Pressable
       onPress={() => clickhandler && clickhandler(squareId)}
       style={{ margin: 0, padding: 0 }}
-      disabled={!clickhandler}
+      disabled={disabled || !clickhandler}
     >
       <View
         style={{
@@ -308,12 +314,13 @@ function GridSquare({ clickhandler, squareId, size, cellType }) {
 function FleetGrid({ data, shipData }) {
   const [gridSize] = useState(10);
   const windowWidth = Dimensions.get("window").width;
-  const cellSize = Math.floor(windowWidth / gridSize) - 2;
+  const boardWidth = Math.min(windowWidth - 30, 320);
+  const cellSize = Math.max(18, Math.floor(boardWidth / gridSize));
 
   // Maps underlying ship cell values to renderable visual cell types.
   const getCellType = (cellId) => {
     const cord = gridIdToCord(cellId);
-    const cellValue = shipData[cord];
+    const cellValue = shipData?.[cord];
     
     if (cellValue === "ship") return "ship";
     if (cellValue === "hit") return "hit";
@@ -322,9 +329,9 @@ function FleetGrid({ data, shipData }) {
   };
 
   return (
-    <View style={styles.gridWrapper}>
+    <View style={[styles.gridWrapper, { width: cellSize * gridSize + 10 }]}>
       <FlatList
-        data={data}
+        data={data || []}
         key={`fleet-${gridSize}`}
         numColumns={gridSize}
         columnWrapperStyle={{ justifyContent: 'flex-start', margin: 0, padding: 0 }}
@@ -338,6 +345,7 @@ function FleetGrid({ data, shipData }) {
             squareId={item.id}
             size={cellSize}
             cellType={getCellType(item.id)}
+            disabled={true}
           />
         )}
       />
@@ -349,12 +357,13 @@ function FleetGrid({ data, shipData }) {
 function AttackGrid({ data, attackData, onAttack, disabled }) {
   const [gridSize] = useState(10);
   const windowWidth = Dimensions.get("window").width;
-  const cellSize = Math.floor(windowWidth / gridSize) - 2;
+  const boardWidth = Math.min(windowWidth - 30, 320);
+  const cellSize = Math.max(18, Math.floor(boardWidth / gridSize));
 
   // Maps attack history values to visual cell state for the attack grid.
   const getCellType = (cellId) => {
     const cord = gridIdToCord(cellId);
-    const cellValue = attackData[cord];
+    const cellValue = attackData?.[cord];
     
     if (cellValue === "hit") return "attacked-hit";
     if (cellValue === "miss") return "attacked-miss";
@@ -368,9 +377,9 @@ function AttackGrid({ data, attackData, onAttack, disabled }) {
   };
 
   return (
-    <View style={styles.gridWrapper}>
+    <View style={[styles.gridWrapper, { width: cellSize * gridSize + 10 }]}>
       <FlatList
-        data={data}
+        data={data || []}
         key={`attack-${gridSize}`}
         numColumns={gridSize}
         columnWrapperStyle={{ justifyContent: 'flex-start', margin: 0, padding: 0 }}
@@ -384,6 +393,7 @@ function AttackGrid({ data, attackData, onAttack, disabled }) {
             squareId={item.id}
             size={cellSize}
             cellType={getCellType(item.id)}
+            disabled={disabled}
           />
         )}
       />
@@ -396,6 +406,9 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 10,
     backgroundColor: "#f5f5f5",
+  },
+  contentContainer: {
+    paddingBottom: 20,
   },
   header: {
     alignItems: "center",
@@ -456,9 +469,8 @@ const styles = StyleSheet.create({
     color: "#333",
   },
   gridsContainer: {
-    flex: 1,
     flexDirection: "column",
-    justifyContent: "space-around",
+    justifyContent: "flex-start",
     gap: 10,
   },
   gridSection: {
